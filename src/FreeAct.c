@@ -32,7 +32,6 @@
 * <info@state-machine.com>
 *****************************************************************************/
 #include "FreeAct.h" /* Free Active Object interface */
-#include "portmacro.h"
 
 /*..........................................................................*/
 void Active_ctor(Active * const me, DispatchHandler dispatch) {
