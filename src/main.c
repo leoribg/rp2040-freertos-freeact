@@ -1,5 +1,4 @@
 #include "FreeRTOS.h"
-#include "FreeRTOSConfig.h"
 #include "task.h"
 #include <assert.h>
 #include <stdio.h>

@@ -1,17 +1,8 @@
 /*****************************************************************************
-* Lab Project: Blinky/Button with RTOS (FreeRTOS) and blocking
-* Board: EMF32-SLSTK3401A
-*
-*                    Q u a n t u m  L e a P s
-*                    ------------------------
-*                    Modern Embedded Software
-*
-* Copyright (C) 2005-2020 Quantum Leaps, LLC. All rights reserved.
-*
-* Contact information:
-* <www.state-machine.com>
-* <info@state-machine.com>
+* Project: FreeAct Example for Raspberry Pi Pico board
+* Board: RP2040
 *****************************************************************************/
+
 #include "FreeAct.h" /* Free Active Object interface */
 #include "hardware/gpio.h"
 #include "pico/stdlib.h"
