@@ -13,6 +13,9 @@
 /* LEDs and Push-buttons on the EMF32-SLSTK3401A board ---------------------*/
 const uint LED_PIN = PICO_DEFAULT_LED_PIN;
 
+/* LEDs and Push-buttons on the EMF32-SLSTK3401A board ---------------------*/
+const uint BUTTON_PIN = 2;
+
 /* Function Prototype ======================================================*/
 void vApplicationTickHook(void);
 void vApplicationIdleHook(void);
@@ -23,6 +26,8 @@ void vApplicationGetIdleTaskMemory(StaticTask_t **ppxIdleTaskTCBBuffer,
 void vApplicationGetTimerTaskMemory(StaticTask_t **ppxTimerTaskTCBBuffer,
                                     StackType_t **ppxTimerTaskStackBuffer,
                                     uint32_t *pulTimerTaskStackSize);
+
+void gpio_callback(uint gpio, uint32_t events);
 
 /* Hooks ===================================================================*/
 /* Application hooks used in this project ==================================*/
@@ -117,7 +122,13 @@ void BSP_init(void) {
     gpio_set_dir(LED_PIN, GPIO_OUT);
     BSP_led0_on();
 
+    gpio_init(BUTTON_PIN);
+    gpio_set_dir(BUTTON_PIN, GPIO_IN);
+    gpio_set_pulls(BUTTON_PIN, true, false);
+
     stdio_init_all();
+
+    gpio_set_irq_enabled_with_callback(BUTTON_PIN, GPIO_IRQ_EDGE_RISE | GPIO_IRQ_EDGE_FALL, true, &gpio_callback);
 }
 /*..........................................................................*/
 void BSP_led0_off(void) {
@@ -162,6 +173,31 @@ void assert_failed(char const *module, int loc) {
     /* important!!! */
     NVIC_SystemReset(); /* reset the CPU */
 #endif
+}
+
+enum itrEvents {
+    LEVEL_LOW,
+    LEVEL_HIGH,
+    EDGE_FALL,
+    EDGE_RISE,
+    MAX_GPIO_EVENTS
+};
+
+void gpio_callback(uint gpio, uint32_t events) {
+    // Put the GPIO event(s) that just happened into event_str
+    // so we can print it
+     for (uint i = 0; i < MAX_GPIO_EVENTS; i++) {
+        uint mask = (1 << i);
+        if (events & mask) {
+            if(i == EDGE_FALL) {
+              BaseType_t xHigherPriorityTaskWoken = pdFALSE;
+              // Post the event
+              static Event const buttonPressedEvt = {BUTTON_PRESSED_SIG};
+              Active_postFromISR(AO_button, &buttonPressedEvt,
+                                 &xHigherPriorityTaskWoken);
+            }
+        }
+     }
 }
 
 /*****************************************************************************

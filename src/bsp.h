@@ -14,9 +14,12 @@ void BSP_led0_off(void);
 void BSP_led0_toggle(void);
 
 enum Signals {
-    TIMEOUT_SIG = USER_SIG
+    TIMEOUT_SIG = USER_SIG,
+    BUTTON_PRESSED_SIG,
+    STOP_LED_SIG,
+    RESUME_LED_SIG,
 };
 
-extern Active *AO_blinkyButton;
+extern Active *AO_button;
 
 #endif /* BSP_H */

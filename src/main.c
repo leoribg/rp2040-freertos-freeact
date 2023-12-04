@@ -10,9 +10,44 @@ typedef struct {
   TimeEvent te;
 } blinkLed;
 
-static void blinkLed_dispatch(blinkLed *const me, Event const *const e) {
+typedef struct {
+  Active super; /* Inherit Active base class */
+  bool isLedBlinking;
+} button;
+
+static StackType_t buttonStack[configMINIMAL_STACK_SIZE];
+static Event *button_queue[10];
+static button Button;
+Active *AO_button = &Button.super;
+
+static StackType_t blinkLedStack[configMINIMAL_STACK_SIZE];
+static Event *blinkLed_queue[10];
+static blinkLed blinkled;
+Active *AO_blinkLed = &blinkled.super;
+
+static void button_dispatch(button *const me, Event const *const e) {
     switch (e->sig) {
     case INIT_SIG: {/* intentionally fall through... */
+        break;
+    }
+    case BUTTON_PRESSED_SIG: {
+        me->isLedBlinking = !me->isLedBlinking;
+        if(me->isLedBlinking) {
+            static Event const resumeLedEvt = {RESUME_LED_SIG};
+            Active_post(AO_blinkLed, &resumeLedEvt);
+        }
+        else { 
+            static Event const stopLedEvt = {STOP_LED_SIG};
+            Active_post(AO_blinkLed, &stopLedEvt);
+        }
+        break;
+    }
+    }
+}
+
+static void blinkLed_dispatch(blinkLed *const me, Event const *const e) {
+    switch (e->sig) {
+    case INIT_SIG: { /* intentionally fall through... */
         TimeEvent_arm(&me->te, (200 / portTICK_RATE_MS));
         break;
     }
@@ -21,7 +56,21 @@ static void blinkLed_dispatch(blinkLed *const me, Event const *const e) {
         TimeEvent_arm(&me->te, (200 / portTICK_RATE_MS));
         break;
     }
+    case RESUME_LED_SIG: {
+        TimeEvent_arm(&me->te, (200 / portTICK_RATE_MS));
+        break;
     }
+    case STOP_LED_SIG: {
+        BSP_led0_on();
+        TimeEvent_disarm(&me->te);
+        break;
+    }
+    }
+}
+
+void button_ctor(button * const me) {
+    Active_ctor(&me->super, (DispatchHandler)&button_dispatch);
+    me->isLedBlinking = true;
 }
 
 void blinkLed_ctor(blinkLed * const me) {
@@ -30,21 +79,21 @@ void blinkLed_ctor(blinkLed * const me) {
     TimeEvent_ctor(&me->te, TIMEOUT_SIG, &me->super);
 }
 
-static StackType_t blinkLedStack[configMINIMAL_STACK_SIZE];
-static Event *blinkLed_queue[10];
-static blinkLed blinkled;
-Active *AO_blinkLed = &blinkled.super;
-
 int main()
 {
     BSP_init();
 
+    button_ctor(&Button);
     blinkLed_ctor(&blinkled);
 
     Active_start(AO_blinkLed, 1, blinkLed_queue,
                  sizeof(blinkLed_queue) / sizeof(blinkLed_queue[0]),
                  blinkLedStack, sizeof(blinkLedStack), 0);
-    
+
+    Active_start(AO_button, 2, button_queue,
+                 sizeof(button_queue) / sizeof(button_queue[0]),
+                 buttonStack, sizeof(buttonStack), 0);
+
     vTaskStartScheduler();
 
     while(1){};
